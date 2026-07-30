@@ -440,13 +440,13 @@ textarea:focus {
 
 .preview-panel {
   padding: 36px clamp(26px, 5vw, 76px) 64px;
-  background-color: #ebeae3;
-  background-image: radial-gradient(#d7d6ce 0.7px, transparent 0.7px);
+  background-color: #e7e7e1;
+  background-image: radial-gradient(#d0d1ca 0.7px, transparent 0.7px);
   background-size: 14px 14px;
 }
 
 .preview-heading {
-  max-width: 720px;
+  max-width: 410px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -457,29 +457,68 @@ textarea:focus {
 }
 
 .paper-wrap {
-  max-width: 720px;
+  max-width: 410px;
   margin: 0 auto;
-  filter: drop-shadow(0 18px 34px rgba(53, 55, 49, 0.12));
+  padding: 8px;
+  border-radius: 44px;
+  background: #171a18;
+  box-shadow:
+    0 25px 54px rgba(36, 39, 36, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .paper {
-  --body-size: 20px;
-  --body-leading: 1.9;
-  min-height: 880px;
-  padding: 54px clamp(42px, 8vw, 92px) 38px;
+  --body-size: 16px;
+  --body-leading: 1.85;
+  min-height: 844px;
+  padding: 66px 29px 64px;
   background: var(--paper);
-  border: 1px solid #e1e0d8;
+  border: 0;
+  border-radius: 36px;
   position: relative;
+  overflow: hidden;
 }
 
-.paper::before {
+.phone-status {
+  position: absolute;
+  top: 15px;
+  left: 22px;
+  right: 22px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #202521;
+  font: 600 10px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0;
+}
+
+.phone-status i {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 92px;
+  height: 25px;
+  border-radius: 999px;
+  background: #171a18;
+  transform: translateX(-50%);
+}
+
+.phone-signals {
+  font-size: 7px;
+  letter-spacing: 2px;
+}
+
+.paper::after {
   content: "";
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 5px;
-  height: 112px;
-  background: var(--green);
+  bottom: 8px;
+  left: 50%;
+  width: 112px;
+  height: 4px;
+  border-radius: 99px;
+  background: #232825;
+  transform: translateX(-50%);
 }
 
 .paper-meta {
@@ -492,9 +531,9 @@ textarea:focus {
 }
 
 .paper h3 {
-  margin: 54px 0 22px;
-  max-width: 13em;
-  font: 800 clamp(28px, 3vw, 38px)/1.42 "Songti SC", STSong, serif;
+  margin: 42px 0 18px;
+  max-width: 100%;
+  font: 800 28px/1.42 "Songti SC", STSong, serif;
   letter-spacing: 0.015em;
   text-wrap: balance;
   outline: none;
@@ -514,7 +553,7 @@ textarea:focus {
 .title-rule {
   width: 36px;
   height: 3px;
-  margin-bottom: 36px;
+  margin-bottom: 30px;
   background: var(--green);
 }
 
@@ -629,7 +668,7 @@ textarea:focus {
 .measure {
   width: 20.75em;
   max-width: 100%;
-  margin-top: 48px;
+  margin-top: 38px;
   color: #50705e;
   font-size: var(--body-size);
 }
@@ -659,10 +698,7 @@ textarea:focus {
 }
 
 .paper-footer {
-  position: absolute;
-  bottom: 30px;
-  left: clamp(42px, 8vw, 92px);
-  right: clamp(42px, 8vw, 92px);
+  margin-top: 44px;
   padding-top: 10px;
   border-top: 1px solid #e1e1d9;
   display: flex;
@@ -709,17 +745,12 @@ textarea:focus {
   }
 
   .paper {
-    min-height: 720px;
-    padding: 40px 24px 72px;
+    min-height: 780px;
+    padding: 64px 24px 58px;
   }
 
   .paper h3 {
-    margin-top: 42px;
-  }
-
-  .paper-footer {
-    left: 24px;
-    right: 24px;
+    margin-top: 38px;
   }
 
   .measure {

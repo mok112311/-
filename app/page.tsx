@@ -25,8 +25,8 @@ function formatReadTime(count: number) {
 export default function Home() {
   const [title, setTitle] = useState(SAMPLE_TITLE);
   const [content, setContent] = useState(SAMPLE);
-  const [fontSize, setFontSize] = useState(20);
-  const [lineHeight, setLineHeight] = useState(1.9);
+  const [fontSize, setFontSize] = useState(16);
+  const [lineHeight, setLineHeight] = useState(1.85);
   const [showGrid, setShowGrid] = useState(true);
   const [copied, setCopied] = useState(false);
   const [images, setImages] = useState<ArticleImage[]>([]);
@@ -408,8 +408,8 @@ export default function Home() {
               <input
                 id="font-size"
                 type="range"
-                min="16"
-                max="24"
+                min="14"
+                max="20"
                 value={fontSize}
                 onChange={(event) => setFontSize(Number(event.target.value))}
               />
@@ -448,7 +448,7 @@ export default function Home() {
               <p className="eyebrow">PREVIEW</p>
               <h2>阅读效果</h2>
             </div>
-            <span>桌面版 · 标准版心</span>
+            <span>手机版 · 390 × 844</span>
           </div>
 
           <div className="paper-wrap">
@@ -473,6 +473,11 @@ export default function Home() {
                 "--body-leading": lineHeight,
               } as React.CSSProperties}
             >
+              <div className="phone-status" aria-hidden="true">
+                <span>9:41</span>
+                <i />
+                <span className="phone-signals">● ◒ ▰</span>
+              </div>
               <div className="paper-meta">
                 <span>文章预览</span>
                 <span>{stats.minutes} MIN READ</span>
