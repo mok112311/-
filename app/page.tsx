@@ -422,7 +422,10 @@ export default function Home() {
     }
   }
 
-  function findChineseWritingIssues(text: string) {
+  function findChineseWritingIssues(
+    text: string,
+    duplicateSegments: string[] = [],
+  ) {
     const issues: ProofreadIssue[] = [];
     const addMatches = (pattern: RegExp, message: string) => {
       for (const match of text.matchAll(pattern)) {
@@ -460,7 +463,73 @@ export default function Home() {
     ];
     commonTypos.forEach(([pattern, message]) => addMatches(pattern, message));
 
+    const grammarRisks: Array<[RegExp, string]> = [
+      [/原因是因为/g, "“原因是因为”语义重复，建议使用“原因是”或“因为”"],
+      [/目的是为了/g, "“目的”和“为了”语义重复，建议删去一个"],
+      [/大约[^，。！？\n]{0,12}左右/g, "“大约”和“左右”语义重复，建议保留一个"],
+      [/近[^，。！？\n]{0,12}左右/g, "“近”和“左右”表达冲突，建议核对"],
+      [/超过[^，。！？\n]{0,12}以上/g, "“超过”和“以上”语义重复，建议保留一个"],
+      [/不足[^，。！？\n]{0,12}以下/g, "“不足”和“以下”语义重复，建议保留一个"],
+      [/是否[^。！？\n]{0,30}吗[？?]?/g, "“是否”和“吗”不宜同时使用"],
+      [/防止[^。！？\n]{0,30}不/g, "可能存在否定不当，请核对“防止”和“不”的搭配"],
+      [/避免[^。！？\n]{0,30}不/g, "可能存在否定不当，请核对“避免”和“不”的搭配"],
+      [/通过[^。！？\n]{2,40}，?使[^。！？\n]{2,40}/g, "“通过……使……”可能造成句子缺少主语，建议核对"],
+      [/凯旋归来/g, "“凯旋”已包含归来的意思，可改为“凯旋”"],
+      [/提前预先/g, "“提前”和“预先”语义重复"],
+      [/免费赠送/g, "“赠送”通常已含免费之意，建议核对"],
+      [/共同协商/g, "“协商”通常已含共同参与之意，建议精简"],
+      [/亲眼目睹/g, "“目睹”已含亲眼看见之意，建议精简"],
+    ];
+    grammarRisks.forEach(([pattern, message]) => addMatches(pattern, message));
+
+    addMatches(
+      /([\u3400-\u9fffA-Za-z0-9]{2,12})(?:[，、\s]*)\1/g,
+      "发现连续重复的词语或表述，请确认是否需要删减",
+    );
+    addMatches(
+      /(的的|了了|是是|在在|以及以及|但是但是|因为因为|所以所以)/g,
+      "发现疑似重复用词",
+    );
+
+    duplicateSegments.forEach((segment) => {
+      const escaped = segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      addMatches(
+        new RegExp(escaped, "g"),
+        segment.includes("\n") || segment.length > 80
+          ? "发现重复段落，请确认是否需要删除"
+          : "发现重复句子或表述，请确认是否需要删减",
+      );
+    });
+
+    for (const sentence of text.matchAll(/[^。！？\n]+[。！？]?/g)) {
+      if (
+        sentence.index !== undefined &&
+        sentence[0].replace(/\s/g, "").length > 120
+      ) {
+        issues.push({
+          start: sentence.index,
+          end: sentence.index + sentence[0].length,
+          message: "句子较长，建议检查主谓搭配并考虑拆分",
+        });
+      }
+    }
+
     return issues;
+  }
+
+  function findDuplicateSegments() {
+    const candidates = [
+      ...content.split(/\n\s*\n/).map((item) => item.trim()),
+      ...content
+        .split(/(?<=[。！？])/)
+        .map((item) => item.trim()),
+    ].filter((item) => item.replace(/\s/g, "").length >= 8);
+    const counts = new Map<string, number>();
+    candidates.forEach((item) => counts.set(item, (counts.get(item) || 0) + 1));
+    return Array.from(counts)
+      .filter(([, count]) => count > 1)
+      .map(([item]) => item)
+      .sort((a, b) => b.length - a.length);
   }
 
   function clearProofreadMarks() {
@@ -479,6 +548,7 @@ export default function Home() {
     if (!roots.length) return 0;
 
     clearProofreadMarks();
+    const duplicateSegments = findDuplicateSegments();
     const textNodes: Text[] = [];
     roots.forEach((root) => {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -498,7 +568,7 @@ export default function Home() {
     let total = 0;
     textNodes.forEach((node) => {
       const text = node.data;
-      const rawIssues = findChineseWritingIssues(text)
+      const rawIssues = findChineseWritingIssues(text, duplicateSegments)
         .sort((a, b) => a.start - b.start || b.end - a.end);
       const issues: ProofreadIssue[] = [];
       rawIssues.forEach((issue) => {
