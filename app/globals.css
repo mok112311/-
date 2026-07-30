@@ -468,7 +468,7 @@ textarea:focus {
 }
 
 .paper {
-  --body-size: 16px;
+  --body-size: 15px;
   --body-leading: 1.85;
   min-height: 844px;
   padding: 66px 29px 64px;
@@ -533,7 +533,7 @@ textarea:focus {
 .paper h3 {
   margin: 42px 0 18px;
   max-width: 100%;
-  font: 800 28px/1.42 "Songti SC", STSong, serif;
+  font: 800 28px/1.42 "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
   letter-spacing: 0.015em;
   text-wrap: balance;
   outline: none;
@@ -563,7 +563,7 @@ textarea:focus {
   max-width: 100%;
   font-size: var(--body-size);
   line-height: var(--body-leading);
-  font-family: "Songti SC", STSong, "Noto Serif CJK SC", serif;
+  font-family: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
   letter-spacing: 0;
   text-align: justify;
 }
@@ -687,7 +687,7 @@ textarea:focus {
 .measure p {
   margin: 10px 0 8px;
   white-space: nowrap;
-  font-family: "Songti SC", STSong, serif;
+  font-family: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
   line-height: 1.5;
 }
 

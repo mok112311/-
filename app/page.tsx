@@ -25,7 +25,7 @@ function formatReadTime(count: number) {
 export default function Home() {
   const [title, setTitle] = useState(SAMPLE_TITLE);
   const [content, setContent] = useState(SAMPLE);
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(15);
   const [lineHeight, setLineHeight] = useState(1.85);
   const [showGrid, setShowGrid] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -58,13 +58,13 @@ export default function Home() {
   async function createCopyHtml() {
     const article = document.createElement("article");
     article.style.cssText =
-      "max-width:520px;margin:0 auto;color:#18201c;font-family:Songti SC,STSong,serif;font-size:20px;line-height:1.9;";
+      "max-width:520px;margin:0 auto;color:#18201c;font-family:PingFang SC,Noto Sans CJK SC,Microsoft YaHei,sans-serif;font-size:15px;line-height:1.85;";
 
     if (title.trim()) {
       const heading = document.createElement("h1");
       heading.textContent = title.trim();
       heading.style.cssText =
-        "margin:0 0 32px;font-size:36px;line-height:1.42;font-weight:700;";
+        "margin:0 0 32px;font-size:28px;line-height:1.42;font-weight:700;font-family:PingFang SC,Noto Sans CJK SC,Microsoft YaHei,sans-serif;";
       article.append(heading);
     }
 
