@@ -59,6 +59,11 @@ function limitTitle(value: string) {
 export default function Home() {
   const [title, setTitle] = useState(SAMPLE_TITLE);
   const [content, setContent] = useState(SAMPLE);
+  const [feishuUrl, setFeishuUrl] = useState("");
+  const [importState, setImportState] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [importMessage, setImportMessage] = useState("");
   const [fontSize, setFontSize] = useState(15);
   const [lineHeight, setLineHeight] = useState(1.85);
   const [showGrid, setShowGrid] = useState(true);
@@ -120,8 +125,12 @@ export default function Home() {
       const copiedImages = Array.from(body.querySelectorAll<HTMLImageElement>("img"));
       await Promise.all(
         copiedImages.map(async (image) => {
-          const blob = await fetch(image.src).then((response) => response.blob());
-          image.src = await blobToDataUrl(blob);
+          try {
+            const blob = await fetch(image.src).then((response) => response.blob());
+            image.src = await blobToDataUrl(blob);
+          } catch {
+            // Keep a public remote URL when its image host blocks CORS.
+          }
           image.style.cssText =
             "display:block;width:100%;height:auto;object-fit:contain;";
         }),
@@ -242,7 +251,7 @@ export default function Home() {
 
   function removeImage(id: string) {
     const target = images.find((image) => image.id === id);
-    if (target) URL.revokeObjectURL(target.url);
+    if (target?.url.startsWith("blob:")) URL.revokeObjectURL(target.url);
     previewBodyRef.current
       ?.querySelectorAll<HTMLElement>("figure[data-image-id]")
       .forEach((figure) => {
@@ -300,6 +309,111 @@ export default function Home() {
     }
   }
 
+  function cleanMarkdownText(markdown: string) {
+    return markdown
+      .replace(/\u200b/g, "")
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/__([^_]+)__/g, "$1")
+      .replace(/^\s*[-*+]\s+/gm, "• ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  async function importFeishuDocument(inputUrl: string) {
+    const trimmedUrl = inputUrl.trim();
+
+    try {
+      const parsedUrl = new URL(trimmedUrl);
+      if (
+        !parsedUrl.hostname.endsWith(".feishu.cn") ||
+        !/^\/(wiki|docx)\//.test(parsedUrl.pathname)
+      ) {
+        throw new Error("请粘贴公开的飞书文档或知识库链接");
+      }
+
+      setImportState("loading");
+      setImportMessage("正在读取公开文档……");
+
+      const response = await fetch(`https://r.jina.ai/${trimmedUrl}`);
+      if (!response.ok) throw new Error(`读取失败（${response.status}）`);
+
+      const raw = await response.text();
+      const marker = "Markdown Content:";
+      const markerIndex = raw.indexOf(marker);
+      const markdown = markerIndex >= 0
+        ? raw.slice(markerIndex + marker.length).trim()
+        : raw.trim();
+      if (!markdown) throw new Error("没有读取到文档内容");
+
+      const imagePattern =
+        /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)(?:\s+"[^"]*")?\)/g;
+      const importedImages: ArticleImage[] = [];
+      const pieces: Array<
+        { type: "text"; value: string } |
+        { type: "image"; image: ArticleImage }
+      > = [];
+      let cursor = 0;
+
+      for (const match of markdown.matchAll(imagePattern)) {
+        const index = match.index ?? 0;
+        if (index > cursor) {
+          pieces.push({ type: "text", value: markdown.slice(cursor, index) });
+        }
+        const image: ArticleImage = {
+          id: `feishu-${crypto.randomUUID()}`,
+          name: match[1]?.trim() || `飞书图片 ${importedImages.length + 1}`,
+          url: match[2],
+        };
+        importedImages.push(image);
+        pieces.push({ type: "image", image });
+        cursor = index + match[0].length;
+      }
+      if (cursor < markdown.length) {
+        pieces.push({ type: "text", value: markdown.slice(cursor) });
+      }
+
+      const firstHeading = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim();
+      if (firstHeading) setTitle(limitTitle(firstHeading));
+
+      const plainContent = cleanMarkdownText(markdown.replace(imagePattern, "\n"));
+      setContent(plainContent);
+      setImages((current) => {
+        current.forEach((image) => {
+          if (image.url.startsWith("blob:")) URL.revokeObjectURL(image.url);
+        });
+        return importedImages;
+      });
+
+      const body = previewBodyRef.current;
+      if (body) {
+        body.replaceChildren();
+        for (const piece of pieces) {
+          if (piece.type === "image") {
+            insertImageInPreview(piece.image, false);
+          } else {
+            const text = cleanMarkdownText(piece.value);
+            if (text) {
+              if (body.childNodes.length) body.append("\n\n");
+              body.append(document.createTextNode(text));
+            }
+          }
+        }
+      }
+
+      setImportState("success");
+      setImportMessage(
+        `已导入 ${plainContent.replace(/\s/g, "").length} 字、${importedImages.length} 张图片`,
+      );
+    } catch (error) {
+      setImportState("error");
+      setImportMessage(
+        error instanceof Error ? error.message : "飞书文档读取失败",
+      );
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -332,6 +446,42 @@ export default function Home() {
             </div>
             <span className="live-dot"><i />实时预览</span>
           </div>
+
+          <label className="editor-label" htmlFor="feishu-link">
+            飞书公开链接
+            <span>粘贴后自动导入</span>
+          </label>
+          <div className="feishu-import">
+            <input
+              id="feishu-link"
+              type="url"
+              value={feishuUrl}
+              onChange={(event) => {
+                setFeishuUrl(event.target.value);
+                if (importState !== "idle") setImportState("idle");
+              }}
+              onPaste={(event) => {
+                const pastedUrl = event.clipboardData.getData("text").trim();
+                if (pastedUrl) {
+                  event.preventDefault();
+                  setFeishuUrl(pastedUrl);
+                  void importFeishuDocument(pastedUrl);
+                }
+              }}
+              placeholder="粘贴 ifanr.feishu.cn/wiki/…"
+              aria-label="飞书公开文档链接"
+            />
+            <button
+              type="button"
+              disabled={!feishuUrl.trim() || importState === "loading"}
+              onClick={() => void importFeishuDocument(feishuUrl)}
+            >
+              {importState === "loading" ? "读取中" : "导入"}
+            </button>
+          </div>
+          <p className={`import-message ${importState}`}>
+            {importMessage || "仅支持互联网上获得链接的人可阅读的飞书文档"}
+          </p>
 
           <label className="editor-label" htmlFor="title-input">
             文章标题
