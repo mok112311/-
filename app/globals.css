@@ -533,9 +533,9 @@ textarea:focus {
 .paper h3 {
   margin: 42px 0 18px;
   max-width: 100%;
-  font: 800 28px/1.42 "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  font: 800 16px/1.5 "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
   letter-spacing: 0.015em;
-  text-wrap: balance;
+  white-space: nowrap;
   outline: none;
   cursor: text;
 }
@@ -548,6 +548,13 @@ textarea:focus {
 .paper h3:empty::before {
   content: attr(data-placeholder);
   color: #b0b4b0;
+}
+
+.title-count {
+  margin: -11px 0 18px;
+  color: #a2a6a2;
+  font: 400 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: right;
 }
 
 .title-rule {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const SAMPLE_TITLE = "过去几年，他们负责把 AI 推向更高的能力边界";
+const SAMPLE_TITLE = "AI 加速了科学，也在掏空大学是不是是不是";
 
 const SAMPLE = `真正的变化，往往不是从一声巨响开始的。
 
@@ -11,6 +11,7 @@ const SAMPLE = `真正的变化，往往不是从一声巨响开始的。
 当能力的边界继续向前，写作者真正需要的，也许不是更快地产出，而是重新拿回对节奏、判断与表达的控制。`;
 
 const TARGET = "过去几年，他们负责把 AI 推向更高的能力边界";
+const TITLE_LIMIT = 20;
 
 type ArticleImage = {
   id: string;
@@ -20,6 +21,26 @@ type ArticleImage = {
 
 function formatReadTime(count: number) {
   return Math.max(1, Math.ceil(count / 400));
+}
+
+function countTitleCharacters(value: string) {
+  return Array.from(value).filter((character) => !/\s/u.test(character)).length;
+}
+
+function limitTitle(value: string) {
+  const singleLine = value.replace(/[\r\n]+/g, " ");
+  let count = 0;
+  let result = "";
+
+  for (const character of Array.from(singleLine)) {
+    if (!/\s/u.test(character)) {
+      if (count >= TITLE_LIMIT) break;
+      count += 1;
+    }
+    result += character;
+  }
+
+  return result;
 }
 
 export default function Home() {
@@ -45,6 +66,7 @@ export default function Home() {
       minutes: formatReadTime(clean.length),
     };
   }, [content]);
+  const titleCount = countTitleCharacters(title);
 
   function blobToDataUrl(blob: Blob) {
     return new Promise<string>((resolve, reject) => {
@@ -300,14 +322,14 @@ export default function Home() {
 
           <label className="editor-label" htmlFor="title-input">
             文章标题
-            <span>独立于正文</span>
+            <span>{titleCount} / {TITLE_LIMIT} · 空格不计</span>
           </label>
           <input
             id="title-input"
             className="title-input"
             aria-label="文章标题"
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => setTitle(limitTitle(event.target.value))}
             placeholder="输入文章标题……"
           />
 
@@ -488,11 +510,27 @@ export default function Home() {
                 suppressContentEditableWarning
                 data-placeholder="点击输入标题"
                 aria-label="可编辑的文章标题"
-                onInput={(event) => setTitle(event.currentTarget.innerText)}
+                onInput={(event) => {
+                  const limited = limitTitle(event.currentTarget.innerText);
+                  if (event.currentTarget.innerText !== limited) {
+                    event.currentTarget.innerText = limited;
+                    const range = document.createRange();
+                    range.selectNodeContents(event.currentTarget);
+                    range.collapse(false);
+                    const selection = window.getSelection();
+                    selection?.removeAllRanges();
+                    selection?.addRange(range);
+                  }
+                  setTitle(limited);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.preventDefault();
+                }}
                 onPaste={pastePlainText}
               >
                 {title}
               </h3>
+              <div className="title-count">{titleCount} / {TITLE_LIMIT}</div>
               <div className="title-rule" />
               <div className="article-body">
                 <div
