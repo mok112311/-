@@ -684,8 +684,8 @@ textarea:focus {
 }
 
 .paper mark[data-proofread] {
-  padding: 0 1px;
-  border-radius: 2px;
+  padding: 0;
+  border-radius: 1px;
   background: linear-gradient(
     transparent 16%,
     rgba(255, 224, 69, 0.78) 16%,
