@@ -11,7 +11,8 @@ const SAMPLE = `真正的变化，往往不是从一声巨响开始的。
 当能力的边界继续向前，写作者真正需要的，也许不是更快地产出，而是重新拿回对节奏、判断与表达的控制。`;
 
 const TARGET = "过去几年，他们负责把 AI 推向更高的能力边界";
-const TITLE_LIMIT = 20;
+const TITLE_LINE_LIMIT = 20;
+const TITLE_TOTAL_LIMIT = 64;
 
 type ArticleImage = {
   id: string;
@@ -28,14 +29,26 @@ function countTitleCharacters(value: string) {
 }
 
 function limitTitle(value: string) {
-  const singleLine = value.replace(/[\r\n]+/g, " ");
-  let count = 0;
+  const normalized = value.replace(/\r/g, "");
+  let totalCount = 0;
+  let lineCount = 0;
   let result = "";
 
-  for (const character of Array.from(singleLine)) {
+  for (const character of Array.from(normalized)) {
+    if (character === "\n") {
+      if (!result.endsWith("\n")) result += "\n";
+      lineCount = 0;
+      continue;
+    }
+
     if (!/\s/u.test(character)) {
-      if (count >= TITLE_LIMIT) break;
-      count += 1;
+      if (totalCount >= TITLE_TOTAL_LIMIT) break;
+      if (lineCount >= TITLE_LINE_LIMIT) {
+        result += "\n";
+        lineCount = 0;
+      }
+      totalCount += 1;
+      lineCount += 1;
     }
     result += character;
   }
@@ -322,15 +335,15 @@ export default function Home() {
 
           <label className="editor-label" htmlFor="title-input">
             文章标题
-            <span>{titleCount} / {TITLE_LIMIT} · 空格不计</span>
+            <span>{titleCount} / {TITLE_TOTAL_LIMIT} · 每行 {TITLE_LINE_LIMIT}</span>
           </label>
-          <input
+          <textarea
             id="title-input"
             className="title-input"
             aria-label="文章标题"
             value={title}
             onChange={(event) => setTitle(limitTitle(event.target.value))}
-            placeholder="输入文章标题……"
+            placeholder="输入文章标题，可分多行……"
           />
 
           <label className="editor-label body-label" htmlFor="article-input">
@@ -523,14 +536,13 @@ export default function Home() {
                   }
                   setTitle(limited);
                 }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") event.preventDefault();
-                }}
                 onPaste={pastePlainText}
               >
                 {title}
               </h3>
-              <div className="title-count">{titleCount} / {TITLE_LIMIT}</div>
+              <div className="title-count">
+                {titleCount} / {TITLE_TOTAL_LIMIT} · 每行最多 {TITLE_LINE_LIMIT}
+              </div>
               <div className="title-rule" />
               <div className="article-body">
                 <div
