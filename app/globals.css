@@ -94,7 +94,8 @@ button {
 }
 
 .ghost-button,
-.primary-button {
+.primary-button,
+.proofread-button {
   min-height: 38px;
   border-radius: 6px;
   padding: 0 16px;
@@ -112,6 +113,20 @@ button {
   color: #fff;
   background: var(--green);
   box-shadow: 0 5px 14px rgba(49, 92, 71, 0.18);
+}
+
+.proofread-button {
+  min-width: 86px;
+  border: 1px solid #dfd29b;
+  background: #fff8d9;
+  color: #685815;
+}
+
+.proofread-button:hover,
+.proofread-button.active {
+  border-color: #d3b947;
+  background: #f7df68;
+  color: #4c400e;
 }
 
 .ghost-button:hover {
@@ -512,6 +527,24 @@ textarea:focus {
   color: var(--muted);
 }
 
+.proofread-legend {
+  max-width: 410px;
+  margin: -17px auto 14px;
+  color: #776a2d;
+  font-size: 9px;
+  text-align: center;
+}
+
+.proofread-legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border-radius: 2px;
+  background: #ffe45f;
+  vertical-align: -1px;
+}
+
 .paper-wrap {
   max-width: 410px;
   margin: 0 auto;
@@ -650,6 +683,21 @@ textarea:focus {
   color: #aaa;
 }
 
+.paper mark[data-proofread] {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: linear-gradient(
+    transparent 16%,
+    rgba(255, 224, 69, 0.78) 16%,
+    rgba(255, 224, 69, 0.78) 91%,
+    transparent 91%
+  );
+  color: inherit;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: help;
+}
+
 .article-body figure {
   position: relative;
   margin: 1.8em 0 2em;
@@ -709,6 +757,11 @@ textarea:focus {
 .preview-add-image:hover {
   border-color: var(--green);
   background: #eef4ef;
+}
+
+.preview-add-image:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .preview-add-image > span {

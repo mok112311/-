@@ -20,6 +20,12 @@ type ArticleImage = {
   url: string;
 };
 
+type ProofreadIssue = {
+  end: number;
+  message: string;
+  start: number;
+};
+
 function formatReadTime(count: number) {
   return Math.max(1, Math.ceil(count / 400));
 }
@@ -68,6 +74,8 @@ export default function Home() {
   const [lineHeight, setLineHeight] = useState(1.85);
   const [showGrid, setShowGrid] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [proofreadActive, setProofreadActive] = useState(false);
+  const [proofreadCount, setProofreadCount] = useState(0);
   const [images, setImages] = useState<ArticleImage[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewTitleRef = useRef<HTMLHeadingElement>(null);
@@ -414,6 +422,128 @@ export default function Home() {
     }
   }
 
+  function findChineseWritingIssues(text: string) {
+    const issues: ProofreadIssue[] = [];
+    const addMatches = (pattern: RegExp, message: string) => {
+      for (const match of text.matchAll(pattern)) {
+        if (match.index === undefined) continue;
+        issues.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          message,
+        });
+      }
+    };
+
+    addMatches(/[,!?;:'()[\]]/g, "请使用对应的中文全角标点");
+    addMatches(/(?<!\d)\.(?!\d)/g, "句号请使用“。”；省略号请使用“……”");
+    addMatches(/\.{2,}/g, "中文省略号应写作“……”");
+    addMatches(/-{2,}/g, "中文破折号应写作“——”");
+    addMatches(/[＂"]/g, "请成对使用上引号“和下引号”");
+    addMatches(/([\u3400-\u9fff])[A-Za-z0-9]/g, "汉字与数字或英文之间应增加空格");
+    addMatches(/[A-Za-z0-9]([\u3400-\u9fff])/g, "数字或英文与汉字之间应增加空格");
+    addMatches(/([，。！？；：])\1+/g, "正式中文通常不连续使用相同标点");
+    addMatches(/\s+[，。！？；：、）》】”]/g, "中文标点前不应留空格");
+    addMatches(/[（《【“]\s+/g, "中文前置标点后不应留空格");
+
+    const commonTypos: Array<[RegExp, string]> = [
+      [/做为/g, "“做为”通常应改为“作为”"],
+      [/帐号/g, "按现行规范，建议使用“账号”"],
+      [/登陆/g, "表示进入系统时，建议使用“登录”"],
+      [/截止目前/g, "建议改为“截至目前”"],
+      [/既使/g, "“既使”应改为“即使”"],
+      [/按装/g, "“按装”应改为“安装”"],
+      [/再接再励/g, "“再接再励”应改为“再接再厉”"],
+      [/名符其实/g, "“名符其实”应改为“名副其实”"],
+      [/迫不急待/g, "“迫不急待”应改为“迫不及待”"],
+      [/一如即往/g, "“一如即往”应改为“一如既往”"],
+    ];
+    commonTypos.forEach(([pattern, message]) => addMatches(pattern, message));
+
+    return issues;
+  }
+
+  function clearProofreadMarks() {
+    [previewTitleRef.current, previewBodyRef.current].forEach((root) => {
+      if (!root) return;
+      root.querySelectorAll("mark[data-proofread]").forEach((mark) => {
+        mark.replaceWith(document.createTextNode(mark.textContent || ""));
+      });
+      root.normalize();
+    });
+  }
+
+  function applyProofreadMarks() {
+    const roots = [previewTitleRef.current, previewBodyRef.current]
+      .filter((root): root is HTMLElement => Boolean(root));
+    if (!roots.length) return 0;
+
+    clearProofreadMarks();
+    const textNodes: Text[] = [];
+    roots.forEach((root) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let current = walker.nextNode();
+      while (current) {
+        const parent = current.parentElement;
+        if (
+          current.textContent?.trim() &&
+          !parent?.closest("figure, button, figcaption")
+        ) {
+          textNodes.push(current as Text);
+        }
+        current = walker.nextNode();
+      }
+    });
+
+    let total = 0;
+    textNodes.forEach((node) => {
+      const text = node.data;
+      const rawIssues = findChineseWritingIssues(text)
+        .sort((a, b) => a.start - b.start || b.end - a.end);
+      const issues: ProofreadIssue[] = [];
+      rawIssues.forEach((issue) => {
+        const previous = issues.at(-1);
+        if (!previous || issue.start >= previous.end) issues.push(issue);
+      });
+      if (!issues.length) return;
+
+      const fragment = document.createDocumentFragment();
+      let cursor = 0;
+      issues.forEach((issue) => {
+        if (issue.start > cursor) {
+          fragment.append(document.createTextNode(text.slice(cursor, issue.start)));
+        }
+        const mark = document.createElement("mark");
+        mark.dataset.proofread = "true";
+        mark.title = issue.message;
+        mark.textContent = text.slice(issue.start, issue.end);
+        fragment.append(mark);
+        cursor = issue.end;
+        total += 1;
+      });
+      if (cursor < text.length) {
+        fragment.append(document.createTextNode(text.slice(cursor)));
+      }
+      node.replaceWith(fragment);
+    });
+
+    return total;
+  }
+
+  function toggleProofread() {
+    if (proofreadActive) {
+      clearProofreadMarks();
+      setProofreadActive(false);
+      setProofreadCount(0);
+      return;
+    }
+
+    setProofreadActive(true);
+    window.requestAnimationFrame(() => {
+      setProofreadCount(applyProofreadMarks());
+    });
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -433,6 +563,12 @@ export default function Home() {
           </button>
           <button className="primary-button" onClick={copyContent}>
             {copied ? "图文已复制" : "复制全文"}
+          </button>
+          <button
+            className={`proofread-button ${proofreadActive ? "active" : ""}`}
+            onClick={toggleProofread}
+          >
+            {proofreadActive ? `取消校对 · ${proofreadCount}` : "中文校对"}
           </button>
         </div>
       </header>
@@ -635,6 +771,11 @@ export default function Home() {
             </div>
             <span>手机版 · 390 × 844</span>
           </div>
+          {proofreadActive && (
+            <div className="proofread-legend">
+              <i />黄色标记为待检查项，悬停可查看修改建议
+            </div>
+          )}
 
           <div className="paper-wrap">
             <article
@@ -669,7 +810,7 @@ export default function Home() {
               </div>
               <h3
                 ref={previewTitleRef}
-                contentEditable
+                contentEditable={!proofreadActive}
                 suppressContentEditableWarning
                 data-placeholder="点击输入标题"
                 aria-label="可编辑的文章标题"
@@ -698,7 +839,7 @@ export default function Home() {
                 <div
                   ref={previewBodyRef}
                   className="article-copy"
-                  contentEditable
+                  contentEditable={!proofreadActive}
                   suppressContentEditableWarning
                   data-placeholder="点击这里直接输入或粘贴正文，也可以粘贴图片……"
                   aria-label="可编辑的文章正文"
@@ -721,6 +862,7 @@ export default function Home() {
                 <button
                   type="button"
                   className="preview-add-image"
+                  disabled={proofreadActive}
                   onMouseDown={(event) => {
                     event.preventDefault();
                     insertAtCaretRef.current = true;
