@@ -443,8 +443,16 @@ export default function Home() {
     addMatches(/\.{2,}/g, "中文省略号应写作“……”");
     addMatches(/-{2,}/g, "中文破折号应写作“——”");
     addMatches(/[＂"]/g, "请成对使用上引号“和下引号”");
-    addMatches(/([\u3400-\u9fff])[A-Za-z0-9]/g, "汉字与数字或英文之间应增加空格");
-    addMatches(/[A-Za-z0-9]([\u3400-\u9fff])/g, "数字或英文与汉字之间应增加空格");
+    addMatches(
+      /\p{Script=Han}\p{Script=Latin}/gu,
+      "中文与英文之间应增加空格",
+    );
+    addMatches(
+      /\p{Script=Latin}\p{Script=Han}/gu,
+      "英文与中文之间应增加空格",
+    );
+    addMatches(/\p{Script=Han}[0-9]/gu, "中文与数字之间应增加空格");
+    addMatches(/[0-9]\p{Script=Han}/gu, "数字与中文之间应增加空格");
     addMatches(/([，。！？；：])\1+/g, "正式中文通常不连续使用相同标点");
     addMatches(/\s+[，。！？；：、）》】”]/g, "中文标点前不应留空格");
     addMatches(/[（《【“]\s+/g, "中文前置标点后不应留空格");
