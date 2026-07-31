@@ -668,9 +668,19 @@ textarea:focus {
 
 .article-copy {
   min-height: 6em;
+  padding-right: 16px;
+  padding-left: 16px;
   outline: none;
   white-space: pre-wrap;
   cursor: text;
+}
+
+.article-copy p {
+  margin: 0 0 10px;
+}
+
+.article-copy p:last-child {
+  margin-bottom: 0;
 }
 
 .article-copy:focus {

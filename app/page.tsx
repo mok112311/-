@@ -122,6 +122,7 @@ export default function Home() {
     const sourceBody = previewBodyRef.current;
     if (sourceBody) {
       const copyBody = document.createElement("section");
+      copyBody.style.cssText = "padding-left:16px;padding-right:16px;";
       let textBuffer = "";
 
       const flushText = () => {
@@ -132,7 +133,7 @@ export default function Home() {
         normalized.split(/\n\s*\n+/).forEach((paragraphText) => {
           const paragraph = document.createElement("p");
           paragraph.style.cssText =
-            "margin:0 0 20px;font-size:15px;line-height:1.85;font-family:PingFang SC,Noto Sans CJK SC,Microsoft YaHei,sans-serif;text-align:left;";
+            "margin:0 0 10px;font-size:15px;line-height:1.85;font-family:PingFang SC,Noto Sans CJK SC,Microsoft YaHei,sans-serif;text-align:left;";
           paragraphText.split("\n").forEach((line, index) => {
             if (index) paragraph.append(document.createElement("br"));
             paragraph.append(document.createTextNode(line));
@@ -342,7 +343,8 @@ export default function Home() {
       previewBodyRef.current.innerText !== content &&
       images.length === 0
     ) {
-      previewBodyRef.current.innerText = content;
+      previewBodyRef.current.replaceChildren();
+      appendParagraphs(previewBodyRef.current, content);
     }
   }, [content, images.length]);
 
@@ -363,6 +365,21 @@ export default function Home() {
       event.preventDefault();
       document.execCommand("insertText", false, text);
     }
+  }
+
+  function appendParagraphs(container: HTMLElement, text: string) {
+    text
+      .replace(/\u200b/g, "")
+      .split(/\n\s*\n+/)
+      .filter((paragraph) => paragraph.trim())
+      .forEach((paragraphText) => {
+        const paragraph = document.createElement("p");
+        paragraphText.split("\n").forEach((line, index) => {
+          if (index) paragraph.append(document.createElement("br"));
+          paragraph.append(document.createTextNode(line));
+        });
+        container.append(paragraph);
+      });
   }
 
   function cleanMarkdownText(markdown: string) {
@@ -451,8 +468,7 @@ export default function Home() {
           } else {
             const text = cleanMarkdownText(piece.value);
             if (text) {
-              if (body.childNodes.length) body.append("\n\n");
-              body.append(document.createTextNode(text));
+              appendParagraphs(body, text);
             }
           }
         }
