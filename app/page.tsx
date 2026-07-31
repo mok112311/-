@@ -110,27 +110,76 @@ export default function Home() {
 
     if (title.trim()) {
       const heading = document.createElement("h1");
-      heading.textContent = title.trim();
       heading.style.cssText =
         "margin:0 0 32px;font-size:28px;line-height:1.42;font-weight:700;font-family:PingFang SC,Noto Sans CJK SC,Microsoft YaHei,sans-serif;";
+      title.trim().split("\n").forEach((line, index) => {
+        if (index) heading.append(document.createElement("br"));
+        heading.append(document.createTextNode(line));
+      });
       article.append(heading);
     }
 
-    const body = previewBodyRef.current?.cloneNode(true) as HTMLElement | undefined;
-    if (body) {
-      body.removeAttribute("contenteditable");
-      body.removeAttribute("aria-label");
-      body.querySelectorAll("button").forEach((button) => button.remove());
-      body.querySelectorAll<HTMLElement>("figure").forEach((figure) => {
-        figure.removeAttribute("contenteditable");
-        figure.style.cssText = "margin:32px 0;";
-      });
-      body.querySelectorAll<HTMLElement>("figcaption").forEach((caption) => {
-        caption.style.cssText =
-          "margin-top:8px;color:#929892;font-size:12px;line-height:1.5;text-align:center;";
-      });
+    const sourceBody = previewBodyRef.current;
+    if (sourceBody) {
+      const copyBody = document.createElement("section");
+      let textBuffer = "";
 
-      const copiedImages = Array.from(body.querySelectorAll<HTMLImageElement>("img"));
+      const flushText = () => {
+        const normalized = textBuffer.replace(/\u200b/g, "").trim();
+        textBuffer = "";
+        if (!normalized) return;
+
+        normalized.split(/\n\s*\n+/).forEach((paragraphText) => {
+          const paragraph = document.createElement("p");
+          paragraph.style.cssText =
+            "margin:0 0 20px;font-size:15px;line-height:1.85;font-family:PingFang SC,Noto Sans CJK SC,Microsoft YaHei,sans-serif;text-align:left;";
+          paragraphText.split("\n").forEach((line, index) => {
+            if (index) paragraph.append(document.createElement("br"));
+            paragraph.append(document.createTextNode(line));
+          });
+          copyBody.append(paragraph);
+        });
+      };
+
+      Array.from(sourceBody.childNodes).forEach((node) => {
+        if (
+          node instanceof HTMLElement &&
+          node.matches("figure[data-image-id]")
+        ) {
+          flushText();
+          const figure = node.cloneNode(true) as HTMLElement;
+          figure.removeAttribute("contenteditable");
+          figure.querySelectorAll("button").forEach((button) => button.remove());
+          figure.style.cssText = "margin:28px 0 30px;";
+          const caption = figure.querySelector<HTMLElement>("figcaption");
+          if (caption) {
+            caption.style.cssText =
+              "margin-top:8px;color:#929892;font-size:12px;line-height:1.5;text-align:center;";
+          }
+          copyBody.append(figure);
+          return;
+        }
+
+        if (node.nodeType === Node.TEXT_NODE) {
+          textBuffer += node.textContent || "";
+          return;
+        }
+
+        if (node instanceof HTMLElement && node.tagName === "BR") {
+          textBuffer += "\n";
+          return;
+        }
+
+        if (node instanceof HTMLElement) {
+          const blockText = node.innerText;
+          if (blockText.trim()) textBuffer += `${blockText}\n\n`;
+        }
+      });
+      flushText();
+
+      const copiedImages = Array.from(
+        copyBody.querySelectorAll<HTMLImageElement>("img"),
+      );
       await Promise.all(
         copiedImages.map(async (image) => {
           try {
@@ -144,8 +193,7 @@ export default function Home() {
         }),
       );
 
-      body.style.cssText = "white-space:pre-wrap;";
-      article.append(body);
+      article.append(copyBody);
     }
 
     return article.outerHTML;
