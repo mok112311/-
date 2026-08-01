@@ -181,6 +181,22 @@ button {
   color: #64806f;
 }
 
+.editor-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.word-count-pill {
+  padding: 5px 9px;
+  border: 1px solid #cfd9d1;
+  border-radius: 999px;
+  background: #edf3ee;
+  color: var(--green);
+  font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 .live-dot i {
   width: 7px;
   height: 7px;
@@ -397,7 +413,7 @@ textarea:focus {
 .stats {
   margin: 16px 0 24px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border: 1px solid var(--line);
   border-radius: 7px;
   overflow: hidden;
@@ -861,6 +877,14 @@ textarea:focus {
   .brand div span,
   .ghost-button {
     display: none;
+  }
+
+  .editor-status {
+    gap: 6px;
+  }
+
+  .word-count-pill {
+    font-size: 10px;
   }
 
   .workspace {

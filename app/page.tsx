@@ -34,6 +34,10 @@ function countTitleCharacters(value: string) {
   return Array.from(value).filter((character) => !/\s/u.test(character)).length;
 }
 
+function countArticleCharacters(value: string) {
+  return Array.from(value).filter((character) => !/\s/u.test(character)).length;
+}
+
 function limitTitle(value: string) {
   const normalized = value.replace(/\r/g, "");
   let totalCount = 0;
@@ -84,15 +88,16 @@ export default function Home() {
   const insertAtCaretRef = useRef(false);
 
   const stats = useMemo(() => {
-    const clean = content.replace(/\s/g, "");
+    const characters = countArticleCharacters(content);
     const paragraphs = content.split(/\n\s*\n/).filter((item) => item.trim());
     return {
-      characters: clean.length,
+      characters,
       paragraphs: paragraphs.length,
-      minutes: formatReadTime(clean.length),
+      minutes: formatReadTime(characters),
     };
   }, [content]);
   const titleCount = countTitleCharacters(title);
+  const totalCharacterCount = titleCount + stats.characters;
 
   function blobToDataUrl(blob: Blob) {
     return new Promise<string>((resolve, reject) => {
@@ -733,7 +738,12 @@ export default function Home() {
               <p className="eyebrow">EDITOR</p>
               <h1>把文章粘贴在这里</h1>
             </div>
-            <span className="live-dot"><i />实时预览</span>
+            <div className="editor-status">
+              <span className="word-count-pill" aria-live="polite">
+                全文 {totalCharacterCount} 字
+              </span>
+              <span className="live-dot"><i />实时预览</span>
+            </div>
           </div>
 
           <label className="editor-label" htmlFor="feishu-link">
@@ -787,7 +797,9 @@ export default function Home() {
 
           <label className="editor-label body-label" htmlFor="article-input">
             正文内容
-            <span>所有段落均左对齐</span>
+            <span aria-live="polite">
+              {stats.characters} 字 · {stats.paragraphs} 段
+            </span>
           </label>
           <textarea
             id="article-input"
@@ -870,7 +882,8 @@ export default function Home() {
           )}
 
           <div className="stats" aria-label="文章统计">
-            <div><strong>{stats.characters}</strong><span>字数</span></div>
+            <div><strong>{totalCharacterCount}</strong><span>全文字数</span></div>
+            <div><strong>{stats.characters}</strong><span>正文字数</span></div>
             <div><strong>{stats.paragraphs}</strong><span>段落</span></div>
             <div><strong>{stats.minutes}</strong><span>分钟阅读</span></div>
           </div>
